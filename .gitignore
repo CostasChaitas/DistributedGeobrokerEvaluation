@@ -4,7 +4,7 @@
 target
 .idea/
 *.iml
-benchmaring_results
+benchmarking_results
 results
 validation
 !sudo
