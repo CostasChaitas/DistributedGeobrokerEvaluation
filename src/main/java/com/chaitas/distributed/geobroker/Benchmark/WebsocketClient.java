@@ -2,9 +2,8 @@ package com.chaitas.distributed.geobroker.Benchmark;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Optional;
+import java.util.*;
 
-import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ControlPacketType;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ExternalMessage;
 import com.chaitas.distributed.geobroker.Utils.JSONable;
 import org.java_websocket.client.WebSocketClient;
@@ -14,12 +13,11 @@ import org.java_websocket.handshake.ServerHandshake;
 public class WebsocketClient extends WebSocketClient {
 
     private final String writeFilePath;
-    private final BenchmarkHelper benchmarkHelper;
+    private final List<ExternalMessage> responses = new ArrayList<>();
 
-    public WebsocketClient(URI serverURI, BenchmarkHelper benchmarkHelper, String writeFilePath ) {
+    public WebsocketClient(URI serverURI, String writeFilePath ) {
         super( serverURI );
         this.writeFilePath = writeFilePath;
-        this.benchmarkHelper = benchmarkHelper;
     }
 
     @Override
@@ -33,8 +31,11 @@ public class WebsocketClient extends WebSocketClient {
             Optional<ExternalMessage> message0 = JSONable.fromJSON(message, ExternalMessage.class);
             ExternalMessage externalMessage = message0.get();
             System.out.println("Received message : " + externalMessage);
-            createStringFromReceivedMessage(externalMessage);
-        } catch (Exception e) {
+            synchronized (responses) {
+                responses.add(externalMessage);
+                responses.notifyAll();
+            }
+        }catch (Exception e) {
             System.out.println("Cannot deserialize received message");
             throw new Error(e);
         }
@@ -50,43 +51,16 @@ public class WebsocketClient extends WebSocketClient {
         ex.printStackTrace();
     }
 
-
-    private void createStringFromReceivedMessage(ExternalMessage message) {
-        ControlPacketType controlPacketType = message.getControlPacketType();
-        long time = System.nanoTime();
-        switch (controlPacketType) {
-            case CONNACK:
-                String connackText = String.format("%2d;%s;;;;;\n", time, "CONNACK");
-                benchmarkHelper.addEntry(writeFilePath, connackText);
-                break;
-            case PINGRESP:
-                String pingrespText = String.format("%2d;%s;;;;;\n", time, "PINGRESP");
-                benchmarkHelper.addEntry(writeFilePath, pingrespText);
-                break;
-            case SUBACK:
-                String subackText = String.format("%2d;%s;;;;;\n", time, "SUBACK");
-                benchmarkHelper.addEntry(writeFilePath, subackText);
-                break;
-            case PUBACK:
-                String pubackText = String.format("%2d;%s;;;;;\n", time, "PUBACK");
-                benchmarkHelper.addEntry(writeFilePath, pubackText);
-                break;
-            case PUBLISH:
-                String publishText = String.format("%2d;%s;;;;;\n", time, "PUBLISH");
-                benchmarkHelper.addEntry(writeFilePath, publishText);
-                break;
-            case INCOMPATIBLEPayload:
-                String incompatibleText = String.format("%2d;%s;;;;;\n", time, "INCOMPATIBLEPayload");
-                benchmarkHelper.addEntry(writeFilePath, incompatibleText);
-                break;
-            default:
-                System.out.println("Unsupported message.");
+    public ExternalMessage sendAndReceive(byte[] data, long timeoutMillis) throws InterruptedException {
+        this.send(data);
+        synchronized (responses){
+            while (responses.size() == 0) responses.wait(timeoutMillis);
+            return responses.get(responses.size() - 1);
         }
     }
 
-
     public static void main( String[] args ) throws URISyntaxException {
-        WebsocketClient c = new WebsocketClient( new URI( "ws://localhost:8000/api" ), new BenchmarkHelper(), ".results/test");
+        WebsocketClient c = new WebsocketClient( new URI( "ws://localhost:8000/api" ), ".results/test");
         c.connect();
         c.close();
     }

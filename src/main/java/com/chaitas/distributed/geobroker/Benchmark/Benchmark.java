@@ -32,7 +32,7 @@ public class Benchmark {
         System.exit(0);
     }
 
-    public void loadTests() throws InterruptedException, IOException {
+    public void loadTests() throws IOException {
         System.out.println("RUNNING testOneLocations");
 
         List<BenchmarkClient> clients = new ArrayList<>();
@@ -71,6 +71,5 @@ public class Benchmark {
         // wait for receiving to stop
         System.out.println("All Threads have been terminated");
     }
-
 
 }

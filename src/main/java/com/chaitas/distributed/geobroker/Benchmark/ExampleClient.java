@@ -37,7 +37,6 @@ public class ExampleClient {
                                         public void onTextFrame(String payload, boolean finalFragment, int rsv) {
                                             System.out.println("Received message");
                                             System.out.println(payload);
-                                            //latch.countDown();
                                         }
 
                                         @Override
