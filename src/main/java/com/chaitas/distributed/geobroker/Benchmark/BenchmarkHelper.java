@@ -25,7 +25,7 @@ public class BenchmarkHelper {
     private static final BlockingQueue<BenchmarkEntry> benchmarkEntryStorage = new ArrayBlockingQueue<>(CAPACITY);
     private static final AtomicInteger putElementCount = new AtomicInteger(0);
 
-    public static void startBenchmarking(String directoryPath) {
+    public static void startBenchmarking() {
         File f = new File(directoryPath);
         if (f.mkdirs() || f.exists()) {
             BenchmarkHelper.benchmarking.set(true);

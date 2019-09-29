@@ -11,7 +11,6 @@ import java.util.concurrent.Executors;
 public class Benchmark {
 
     private final String testsDirectoryPath = "./validation/";
-    private final String resultsDirectoryPath = "./results/";
 
     public static void main (String[] args) throws Exception {
         Benchmark loadTest = new Benchmark();
@@ -22,13 +21,12 @@ public class Benchmark {
 
     public void setUp() {
         System.out.println("Running setUp");
-        BenchmarkHelper.startBenchmarking(resultsDirectoryPath);
+        BenchmarkHelper.startBenchmarking();
     }
 
     public void tearDown() {
         System.out.println("Running tearDown after 3 seconds.");
-        // BenchmarkHelper.stopBenchmarking();
-        UtilityKt.sleepNoLog(3000, 0);
+        BenchmarkHelper.stopBenchmarking();
         System.exit(0);
     }
 

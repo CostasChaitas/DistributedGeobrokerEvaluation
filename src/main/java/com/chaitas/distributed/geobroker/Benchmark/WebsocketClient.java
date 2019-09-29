@@ -12,12 +12,10 @@ import org.java_websocket.handshake.ServerHandshake;
 
 public class WebsocketClient extends WebSocketClient {
 
-    private final String writeFilePath;
     private final List<ExternalMessage> responses = new ArrayList<>();
 
-    public WebsocketClient(URI serverURI, String writeFilePath ) {
+    public WebsocketClient(URI serverURI ) {
         super( serverURI );
-        this.writeFilePath = writeFilePath;
     }
 
     @Override
@@ -60,7 +58,7 @@ public class WebsocketClient extends WebSocketClient {
     }
 
     public static void main( String[] args ) throws URISyntaxException {
-        WebsocketClient c = new WebsocketClient( new URI( "ws://localhost:8000/api" ), ".results/test");
+        WebsocketClient c = new WebsocketClient( new URI( "ws://localhost:8000/api" ));
         c.connect();
         c.close();
     }
