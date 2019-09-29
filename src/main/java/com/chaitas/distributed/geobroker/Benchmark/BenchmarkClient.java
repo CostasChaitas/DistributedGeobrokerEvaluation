@@ -71,6 +71,8 @@ class BenchmarkClient implements Runnable {
                     BenchmarkHelper.addEntry(message.getControlPacketType().toString(), clientName,System.nanoTime() - time);
                 }
             }
+
+            Thread.sleep(10000);
         } catch (Exception e) {
             throw new Error(e);
         } finally {
@@ -80,10 +82,10 @@ class BenchmarkClient implements Runnable {
 
     public byte[] parseTestEntry (String[]messageDetails) throws ParseException {
         String controlPacket = messageDetails[3];
-        double lat = Double.parseDouble(messageDetails[1]);
-        double lon = Double.parseDouble(messageDetails[2]);
         switch (controlPacket) {
             case "ping":
+                double lat = Double.parseDouble(messageDetails[1]);
+                double lon = Double.parseDouble(messageDetails[2]);
                 ExternalMessage ping = new ExternalMessage(
                         clientName,
                         ControlPacketType.PINGREQ,
@@ -114,7 +116,6 @@ class BenchmarkClient implements Runnable {
             default:
                 System.out.println("Unsupported message.");
                 throw new Error("Cannot parse Test Entry");
-
         }
     }
 }

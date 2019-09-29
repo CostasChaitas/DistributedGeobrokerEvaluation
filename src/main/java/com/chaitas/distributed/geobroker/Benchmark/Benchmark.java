@@ -25,7 +25,7 @@ public class Benchmark {
     }
 
     public void tearDown() {
-        System.out.println("Running tearDown after 3 seconds.");
+        System.out.println("Running tearDown");
         BenchmarkHelper.stopBenchmarking();
         System.exit(0);
     }

@@ -54,7 +54,9 @@ public class WebsocketClient extends WebSocketClient {
         this.send(data);
         synchronized (responses){
             while (responses.size() == 0 || responsesSize >= responses.size()) responses.wait(timeoutMillis);
-            responsesSize++;
+            synchronized (responsesSize) {
+                responsesSize++;
+            }
             return responses.get(responses.size() - 1);
         }
     }
