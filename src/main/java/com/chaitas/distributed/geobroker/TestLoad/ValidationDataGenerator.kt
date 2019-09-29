@@ -30,7 +30,7 @@ fun main() {
     prepareDir(directoryPath)
 
     val stats = Stats()
-    val setup = getSetupString("com.chaitas.distributed.geobroker.Client.Data.ValidationDataGeneratorKt")
+    val setup = getSetupString("com.chaitas.distributed.geobroker.TestLoad.ValidationDataGeneratorKt")
     File("$directoryPath/00_summary.txt").writeText(setup)
 
     for (b in 0..2) {
