@@ -13,6 +13,7 @@ import org.java_websocket.handshake.ServerHandshake;
 public class WebsocketClient extends WebSocketClient {
 
     private final List<ExternalMessage> responses = new ArrayList<>();
+    private Integer responsesSize = 0;
 
     public WebsocketClient(URI serverURI ) {
         super( serverURI );
@@ -52,7 +53,8 @@ public class WebsocketClient extends WebSocketClient {
     public ExternalMessage sendAndReceive(byte[] data, long timeoutMillis) throws InterruptedException {
         this.send(data);
         synchronized (responses){
-            while (responses.size() == 0) responses.wait(timeoutMillis);
+            while (responses.size() == 0 || responsesSize >= responses.size()) responses.wait(timeoutMillis);
+            responsesSize++;
             return responses.get(responses.size() - 1);
         }
     }

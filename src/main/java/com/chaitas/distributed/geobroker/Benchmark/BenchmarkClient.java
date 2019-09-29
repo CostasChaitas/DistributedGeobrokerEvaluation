@@ -16,13 +16,11 @@ import java.io.FileReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.ParseException;
-import java.util.concurrent.CountDownLatch;
 
 class BenchmarkClient implements Runnable {
 
     private final String apiURL = "ws://localhost:8000/api";
     private final String readFilePath;
-    public static CountDownLatch latch = new CountDownLatch(1);
     private final KryoSerializerPool kryo = new KryoSerializerPool();
     private final String clientName;
     private WebsocketClient websocketClient;
@@ -32,7 +30,7 @@ class BenchmarkClient implements Runnable {
         this.clientName = clientName;
         this.readFilePath = "./validation/" + clientName + ".csv";
         try {
-            websocketClient = new WebsocketClient(new URI("ws://localhost:8000/api"));
+            websocketClient = new WebsocketClient(new URI(apiURL));
             this.createClientWebsocket();
             this.connectClientWebsocket();
         } catch (URISyntaxException e) {
@@ -65,13 +63,12 @@ class BenchmarkClient implements Runnable {
             //Read to skip the header
             br.readLine();
             while ((line = br.readLine()) != null) {
-                latch = new CountDownLatch(1);
                 String[] messageDetails = line.split(";");
                 if (messageDetails.length > 0) {
                     byte[] obj = parseTestEntry(messageDetails);
                     long time = System.nanoTime();
                     ExternalMessage message = websocketClient.sendAndReceive(obj, 1000);
-                    BenchmarkHelper.addEntry(message.getControlPacketType().toString(), System.nanoTime() - time);
+                    BenchmarkHelper.addEntry(message.getControlPacketType().toString(), clientName,System.nanoTime() - time);
                 }
             }
         } catch (Exception e) {

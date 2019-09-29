@@ -35,12 +35,12 @@ public class BenchmarkHelper {
         }
     }
 
-    public static void addEntry(String name, long time) {
+    public static void addEntry(String name, String clientName, long time) {
         if (!benchmarking.get()) {
             return;
         }
 
-        BenchmarkEntry entry = new BenchmarkEntry(name, System.currentTimeMillis(), time);
+        BenchmarkEntry entry = new BenchmarkEntry(name, clientName, System.currentTimeMillis(), time);
         int timeToFlush = putElementCount.incrementAndGet() % FLUSH_COUNT;
         benchmarkEntryStorage.offer(entry);
         if (timeToFlush == 0) {
@@ -87,31 +87,33 @@ public class BenchmarkHelper {
 
     public static class BenchmarkEntry {
         public String name;
+        public String clientName;
         public long timestamp;
         public long time;
 
-        public BenchmarkEntry(String name, long timestamp, long time) {
+        public BenchmarkEntry(String name, String clientName, long timestamp, long time) {
             this.name = name;
+            this.clientName = clientName;
             this.timestamp = timestamp;
             this.time = time;
         }
 
         public static BenchmarkEntry fromString(String s) {
             String[] entries = s.split(";");
-            if (entries.length == 3) {
-                return new BenchmarkEntry(entries[0], Long.valueOf(entries[1]), Long.valueOf(entries[2]));
+            if (entries.length == 4) {
+                return new BenchmarkEntry(entries[0], entries[1], Long.valueOf(entries[2]), Long.valueOf(entries[3]));
             } else {
-                return new BenchmarkEntry("null", 0, 0);
+                return new BenchmarkEntry("null", "null",0, 0);
             }
         }
 
         public static String getCSVHeader() {
-            return "name;timestamp;time\n";
+            return "name;clientName;timestamp;time\n";
         }
 
         @Override
         public String toString() {
-            return String.format("%s;%d;%d\n", name, timestamp, time);
+            return String.format("%s;%s;%d;%d\n", name, clientName, timestamp, time);
         }
     }
 
@@ -141,7 +143,6 @@ public class BenchmarkHelper {
                     if (!line.startsWith(BenchmarkEntry.getCSVHeader().substring(0, 5))) {
 
                         BenchmarkEntry entry = BenchmarkEntry.fromString(line);
-
                         // get correct writer or create
                         BufferedWriter writer = writers.get(entry.name);
                         if (writer == null) {
