@@ -10,8 +10,8 @@ import java.util.concurrent.Executors;
 
 public class Benchmark {
 
-    private String testsDirectoryPath = "./validation/";
-    private String resultsDirectoryPath = "./results/";
+    private final String testsDirectoryPath = "./validation/";
+    private final String resultsDirectoryPath = "./results/";
 
     public static void main (String[] args) throws Exception {
         Benchmark loadTest = new Benchmark();
@@ -22,7 +22,7 @@ public class Benchmark {
 
     public void setUp() {
         System.out.println("Running setUp");
-        // BenchmarkHelper.startBenchmarking(resultsDirectoryPath);
+        BenchmarkHelper.startBenchmarking(resultsDirectoryPath);
     }
 
     public void tearDown() {
@@ -65,7 +65,8 @@ public class Benchmark {
                 .toArray(CompletableFuture[]::new);
         CompletableFuture.allOf(futures).join();
 
-        System.out.println("Terminating threads...");
+        System.out.println("Terminating threads in 3 seconds...");
+        UtilityKt.sleepNoLog(3000, 0);
         pool.shutdown();
         // wait for receiving to stop
         System.out.println("All Threads have been terminated");
