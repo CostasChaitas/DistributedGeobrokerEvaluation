@@ -30,13 +30,9 @@ Since the benchmark uses multiple threads and open multiple TCP socket connectio
 sudo ./sock-config.sh
 ```
 
-In order to run the benchmark, we have to specify the folder name which contains the test data. This can be found on the very top of the class called **Benchmark**. Please adjust the following variable:
+In order to run the benchmark, we have to specify the folder name which contains the test data and also the URL of the API. This can be found on the very top of the class called **Benchmark**. Please adjust the following variables:
 ```
 private final String testsDirectoryPath = "./{NameHere}/";
-```
-
-You will also have to specify the API URL in the **BenchmarkClient** class. Please adjust the following variable: 
-```
 private final String apiURL = "ws://{HostnameHere:PortHere}";
 ```
 

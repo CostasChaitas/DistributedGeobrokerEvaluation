@@ -26,7 +26,7 @@ public class WebsocketClient extends WebSocketClient {
 
     @Override
     public void onOpen( ServerHandshake handshakedata ) {
-        System.out.println( "Opened connection" );
+        System.out.println("Websocket connection opnened: " + this.clientName);
     }
 
     @Override
@@ -37,7 +37,8 @@ public class WebsocketClient extends WebSocketClient {
             if(externalMessage.getControlPacketType() != ControlPacketType.PUBLISH){
                 queue.put(externalMessage);
             } else {
-                BenchmarkHelper.addEntry(externalMessage.getControlPacketType().toString(), clientName,0);
+                System.out.println("PUBLISH message received!!");
+                BenchmarkHelper.addEntry(externalMessage.getControlPacketType().toString(), this.clientName,0);
             }
         }catch (Exception e) {
             System.out.println("Cannot deserialize received message");
@@ -53,6 +54,10 @@ public class WebsocketClient extends WebSocketClient {
     @Override
     public void onError( Exception ex ) {
         ex.printStackTrace();
+    }
+
+    public String getClientName() {
+        return clientName;
     }
 
     public ExternalMessage sendAndReceive(byte[] data, long timeoutMillis) throws InterruptedException {
