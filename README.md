@@ -35,6 +35,11 @@ In order to run the benchmark, we have to specify the folder name which contains
 private final String testsDirectoryPath = "./{NameHere}/";
 ```
 
+You will also have to specify the API URL in the **BenchmarkClient** class. Please adjust the following variable: 
+```
+private final String apiURL = "ws://{HostnameHere:PortHere}";
+```
+
 Finally run the **Benchmark** class. A folder called `benchmarking_results` will be created containing the results of the benchmark.
 
 ## Generate Benchmark Statistics
