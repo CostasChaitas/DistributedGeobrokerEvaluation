@@ -1,4 +1,6 @@
-package com.chaitas.distributed.geobroker.TestLoad.units
+// Code adapted from Geobroker project : https://github.com/MoeweX/geobroker
+
+package com.chaitas.distributed.geobroker.TestGenerators.units
 
 class Distance(private val distance: Double, private val unit: Unit) {
 

@@ -1,4 +1,6 @@
-package com.chaitas.distributed.geobroker.TestLoad.units
+// Code adapted from Geobroker project : https://github.com/MoeweX/geobroker
+
+package com.chaitas.distributed.geobroker.TestGenerators.units
 
 import kotlin.math.pow
 

@@ -1,6 +1,8 @@
-package com.chaitas.distributed.geobroker.TestLoad
+// Code adapted from Geobroker project : https://github.com/MoeweX/geobroker
 
-import com.chaitas.distributed.geobroker.TestLoad.units.Time
+package com.chaitas.distributed.geobroker.TestGenerators
+
+import com.chaitas.distributed.geobroker.TestGenerators.units.Time
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Spatial.Geofence
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Spatial.Location
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.randomName
@@ -30,7 +32,7 @@ fun main() {
     prepareDir(directoryPath)
 
     val stats = Stats()
-    val setup = getSetupString("com.chaitas.distributed.geobroker.TestLoad.ValidationDataGeneratorKt")
+    val setup = getSetupString("com.chaitas.distributed.geobroker.TestGenerators.ValidationDataGeneratorKt")
     File("$directoryPath/00_summary.txt").writeText(setup)
 
     for (b in 0..2) {

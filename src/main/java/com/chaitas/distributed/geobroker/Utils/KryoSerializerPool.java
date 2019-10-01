@@ -1,6 +1,5 @@
 package com.chaitas.distributed.geobroker.Utils;
 
-
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ControlPacketType;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ExternalMessage;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.*;

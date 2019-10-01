@@ -1,9 +1,11 @@
-package com.chaitas.distributed.geobroker.TestLoad
+// Code adapted from Geobroker project : https://github.com/MoeweX/geobroker
 
-import com.chaitas.distributed.geobroker.TestLoad.units.Distance
-import com.chaitas.distributed.geobroker.TestLoad.units.Distance.Unit.KM
-import com.chaitas.distributed.geobroker.TestLoad.units.Time
-import com.chaitas.distributed.geobroker.TestLoad.units.Time.Unit.H
+package com.chaitas.distributed.geobroker.TestGenerators
+
+import com.chaitas.distributed.geobroker.TestGenerators.units.Distance
+import com.chaitas.distributed.geobroker.TestGenerators.units.Distance.Unit.KM
+import com.chaitas.distributed.geobroker.TestGenerators.units.Time
+import com.chaitas.distributed.geobroker.TestGenerators.units.Time.Unit.H
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Spatial.Geofence
 
 
