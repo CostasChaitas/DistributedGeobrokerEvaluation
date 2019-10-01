@@ -47,13 +47,11 @@ public class BenchmarkHelper {
             // FLUSH_COUNT elements have been added since last flush, so time to flush
             pool.submit(() -> {
                 System.out.println("Flushing benchmarking values");
-                try {
-                    BufferedWriter writer = new BufferedWriter(new FileWriter(directoryPath + System.nanoTime() + ".csv"));
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(directoryPath + System.nanoTime() + ".csv"))) {
                     writer.write(BenchmarkEntry.getCSVHeader());
                     for (int i = 0; i < FLUSH_COUNT; i++) {
                         writer.write(String.valueOf(benchmarkEntryStorage.poll()));
                     }
-                    writer.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -65,13 +63,14 @@ public class BenchmarkHelper {
         BenchmarkHelper.benchmarking.set(false);
         pool.submit(() -> {
             System.out.println("Flushing benchmarking values");
-            try {
-                BufferedWriter writer = new BufferedWriter(new FileWriter(directoryPath + System.nanoTime() + ".csv"));
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(directoryPath + System.nanoTime() + ".csv"))) {
                 writer.write(BenchmarkEntry.getCSVHeader());
-                for (int i = 0; i < benchmarkEntryStorage.size(); i++) {
+                Integer benchmarkEntryStorageLenght = benchmarkEntryStorage.size();
+                System.out.println("There are " + benchmarkEntryStorageLenght + " entries to be stored");
+                for (int i = 0; i < benchmarkEntryStorageLenght; i++) {
                     writer.write(String.valueOf(benchmarkEntryStorage.poll()));
+                    writer.flush();
                 }
-                writer.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }

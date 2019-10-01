@@ -47,17 +47,20 @@ class BenchmarkClient implements Runnable {
     }
 
     private void connectClientWebsocket() {
-        Location location = Location.random();
-        ExternalMessage connect = new ExternalMessage(clientName, ControlPacketType.CONNECT, new CONNECTPayload(location));
-        byte[] connectMsg = kryo.write(connect);
-        websocketClient.send(connectMsg);
+        try {
+            Location location = Location.random();
+            ExternalMessage connect = new ExternalMessage(clientName, ControlPacketType.CONNECT, new CONNECTPayload(location));
+            byte[] connectMsg = kryo.write(connect);
+            websocketClient.sendAndReceive(connectMsg, 2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 
     @Override
     public void run () {
         System.out.println("Started client " + clientName);
-
         try (BufferedReader br = new BufferedReader(new FileReader(readFilePath))){
             String line;
             //Read to skip the header
@@ -67,12 +70,10 @@ class BenchmarkClient implements Runnable {
                 if (messageDetails.length > 0) {
                     byte[] obj = parseTestEntry(messageDetails);
                     long time = System.nanoTime();
-                    ExternalMessage message = websocketClient.sendAndReceive(obj, 1000);
+                    ExternalMessage message = websocketClient.sendAndReceive(obj, 2000);
                     BenchmarkHelper.addEntry(message.getControlPacketType().toString(), clientName,System.nanoTime() - time);
                 }
             }
-
-            Thread.sleep(10000);
         } catch (Exception e) {
             throw new Error(e);
         } finally {

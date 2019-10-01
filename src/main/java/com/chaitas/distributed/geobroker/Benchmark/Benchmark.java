@@ -64,7 +64,7 @@ public class Benchmark {
         CompletableFuture.allOf(futures).join();
 
         System.out.println("Terminating threads in 3 seconds...");
-        UtilityKt.sleepNoLog(3000, 0);
+        // UtilityKt.sleepNoLog(3000, 0);
         pool.shutdown();
         // wait for receiving to stop
         System.out.println("All Threads have been terminated");
