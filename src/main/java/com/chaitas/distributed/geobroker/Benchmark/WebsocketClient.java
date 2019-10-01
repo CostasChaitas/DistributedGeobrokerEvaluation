@@ -7,6 +7,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ControlPacketType;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ExternalMessage;
 import com.chaitas.distributed.geobroker.Utils.JSONable;
 import org.java_websocket.client.WebSocketClient;
@@ -15,10 +16,12 @@ import org.java_websocket.handshake.ServerHandshake;
 
 public class WebsocketClient extends WebSocketClient {
 
-    private BlockingQueue<ExternalMessage> queue = new ArrayBlockingQueue<>(1);
+    private final String clientName;
+    private final BlockingQueue<ExternalMessage> queue = new ArrayBlockingQueue<>(1);
 
-    public WebsocketClient(URI serverURI ) {
+    public WebsocketClient(URI serverURI, String clientName ) {
         super( serverURI );
+        this.clientName = clientName;
     }
 
     @Override
@@ -31,7 +34,11 @@ public class WebsocketClient extends WebSocketClient {
         try {
             Optional<ExternalMessage> message0 = JSONable.fromJSON(message, ExternalMessage.class);
             ExternalMessage externalMessage = message0.get();
-            queue.put(externalMessage);
+            if(externalMessage.getControlPacketType() != ControlPacketType.PUBLISH){
+                queue.put(externalMessage);
+            } else {
+                BenchmarkHelper.addEntry(externalMessage.getControlPacketType().toString(), clientName,0);
+            }
         }catch (Exception e) {
             System.out.println("Cannot deserialize received message");
             throw new Error(e);
@@ -55,7 +62,7 @@ public class WebsocketClient extends WebSocketClient {
     }
 
     public static void main( String[] args ) throws URISyntaxException {
-        WebsocketClient c = new WebsocketClient( new URI( "ws://localhost:8000/api" ));
+        WebsocketClient c = new WebsocketClient( new URI( "ws://localhost:8000/api"), "testClient");
         c.connect();
         c.close();
     }

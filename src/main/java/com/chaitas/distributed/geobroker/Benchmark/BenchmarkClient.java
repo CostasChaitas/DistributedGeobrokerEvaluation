@@ -30,7 +30,7 @@ class BenchmarkClient implements Runnable {
         this.clientName = clientName;
         this.readFilePath = "./validation/" + clientName + ".csv";
         try {
-            websocketClient = new WebsocketClient(new URI(apiURL));
+            websocketClient = new WebsocketClient(new URI(apiURL), clientName);
             this.createClientWebsocket();
             this.connectClientWebsocket();
         } catch (URISyntaxException e) {
