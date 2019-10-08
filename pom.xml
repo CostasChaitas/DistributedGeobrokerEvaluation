@@ -169,7 +169,7 @@
           <includeProjectDependencies>true</includeProjectDependencies>
           <includePluginDependencies>true</includePluginDependencies>
           <classpathScope>compile</classpathScope>
-          <mainClass>com.chaitas.distributed.geobroker.Benchmark.LoadTest</mainClass>
+          <mainClass>com.chaitas.distributed.geobroker.Benchmark.Benchmark</mainClass>
         </configuration>
       </plugin>
     </plugins>

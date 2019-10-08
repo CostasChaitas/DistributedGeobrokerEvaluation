@@ -4,7 +4,7 @@ package com.chaitas.distributed.geobroker.Benchmark;
 
 public class Benchmark {
 
-    private final String testsDirectoryPath = "./environment/";
+    private final String testsDirectoryPath = "./validation/";
     private final String apiURL = "ws://localhost:8000/api";
 
     public static void main (String[] args) {

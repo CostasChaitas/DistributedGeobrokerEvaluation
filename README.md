@@ -36,7 +36,12 @@ private final String testsDirectoryPath = "./{NameHere}/";
 private final String apiURL = "ws://{HostnameHere:PortHere}";
 ```
 
-Finally run the **Benchmark** class. A folder called `benchmarking_results` will be created containing the results of the benchmark.
+Finally run the Benchmark using the following command :
+```
+mvn exec:java -Dexec.mainClass=com.chaitas.distributed.geobroker.Benchmark.Benchmark
+```
+
+A folder called `benchmarking_results` will be created containing the results of the benchmark.
 
 ## Generate Benchmark Statistics
 
