@@ -153,25 +153,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.2.1</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>java</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <executable>java</executable>
-          <includeProjectDependencies>true</includeProjectDependencies>
-          <includePluginDependencies>true</includePluginDependencies>
-          <classpathScope>compile</classpathScope>
-          <mainClass>com.chaitas.distributed.geobroker.Benchmark.Benchmark</mainClass>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 </project>
