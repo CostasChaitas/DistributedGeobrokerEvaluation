@@ -50,10 +50,10 @@ public class Geofence{
 
         final ShapeFactory.PolygonBuilder polygonBuilder = GEO.getShapeFactory().polygon();
         for (Location location : surroundingLocations) {
-            polygonBuilder.pointLatLon(location.getLat(), location.getLon());
+            polygonBuilder.pointXY(location.getLon(), location.getLat());
         }
         // close polygon
-        polygonBuilder.pointLatLon(surroundingLocations.get(0).getLat(), surroundingLocations.get(0).getLon());
+        polygonBuilder.pointXY(surroundingLocations.get(0).getLon(), surroundingLocations.get(0).getLat());
         return new Geofence(polygonBuilder.build());
     }
 

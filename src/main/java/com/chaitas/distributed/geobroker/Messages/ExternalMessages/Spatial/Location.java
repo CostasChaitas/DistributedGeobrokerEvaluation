@@ -42,7 +42,7 @@ public class Location {
      */
     public Location(@NotNull @JsonProperty("lat") double lat,
                     @NotNull @JsonProperty("lon") double lon) {
-        point = SpatialContext.GEO.getShapeFactory().pointLatLon(lat, lon);
+        point = SpatialContext.GEO.getShapeFactory().pointXY(lon, lat);
     }
 
     /**
@@ -103,7 +103,7 @@ public class Location {
                 distance * KM_TO_DEG,
                 direction,
                 SpatialContext.GEO,
-                SpatialContext.GEO.getShapeFactory().pointLatLon(0.0, 0.0));
+                SpatialContext.GEO.getShapeFactory().pointXY(0.0, 0.0));
 
         return new Location(result);
     }
@@ -145,11 +145,11 @@ public class Location {
     }
 
     public double getLat() {
-        return point.getLat();
+        return point.getY();
     }
 
     public double getLon() {
-        return point.getLon();
+        return point.getX();
     }
 
     public String getWKT() {
