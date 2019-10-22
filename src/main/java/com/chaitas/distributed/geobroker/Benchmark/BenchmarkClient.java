@@ -12,37 +12,28 @@ import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Topic;
 import com.chaitas.distributed.geobroker.Utils.KryoSerializerPool;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
-class BenchmarkClients implements Runnable {
+class BenchmarkClient implements Runnable {
 
+    private final String clientName;
     private final String testsDirectoryPath;
     private final String apiURL;
     private final KryoSerializerPool kryo = new KryoSerializerPool();
     private WebsocketClient websocketClient;
-    private List<WebsocketClient> websocketList = new ArrayList<>();
+    private Long time;
 
-    public BenchmarkClients(String testsDirectoryPath, String apiURL) {
+    public BenchmarkClient(String clientName, String testsDirectoryPath, String apiURL) {
+        this.clientName = clientName;
         this.testsDirectoryPath = testsDirectoryPath;
         this.apiURL = apiURL;
         try {
-            File directory = new File(this.testsDirectoryPath);
-            for (File f : Objects.requireNonNull(directory.listFiles())) {
-                if (f.getName().endsWith(".csv")) {
-                    String fileNameWithOutExt = f.getName().replaceFirst("[.][^.]+$", "");
-                    websocketClient = new WebsocketClient(new URI(this.apiURL), fileNameWithOutExt);
-                    websocketList.add(websocketClient);
-                    this.createClientWebsocket();
-                    this.connectClientWebsocket();
-                }
-            }
+            websocketClient = new WebsocketClient(new URI(this.apiURL), clientName);
+            this.createClientWebsocket();
+            this.connectClientWebsocket();
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
@@ -57,45 +48,51 @@ class BenchmarkClients implements Runnable {
     }
 
     private void connectClientWebsocket() {
-        try {
-            Location location = Location.random();
-            ExternalMessage connect = new ExternalMessage(websocketClient.getClientName(), ControlPacketType.CONNECT, new CONNECTPayload(location));
-            byte[] connectMsg = kryo.write(connect);
-            websocketClient.sendAndReceive(connectMsg, 2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        Location location = Location.random();
+        ExternalMessage connect = new ExternalMessage(websocketClient.getClientName(), ControlPacketType.CONNECT, new CONNECTPayload(location));
+        byte[] connectMsg = kryo.write(connect);
+        websocketClient.send(connectMsg);
     }
 
     @Override
     public void run () {
-        websocketList.parallelStream().forEach(websocket -> {
-            String clientName = new String(websocket.getClientName());
-            String readFilePath = this.testsDirectoryPath + clientName + ".csv";
-            System.out.println("Started client " + clientName);
-            try (BufferedReader br = new BufferedReader(new FileReader(readFilePath))){
-                String line;
-                br.readLine();
-                while ((line = br.readLine()) != null) {
-                    String[] messageDetails = line.split(";");
-                    if (messageDetails.length > 0) {
-                        byte[] obj = parseTestEntry(messageDetails, clientName);
-                        long time = System.nanoTime();
-                        ExternalMessage message = websocket.sendAndReceive(obj, 5000);
-                        BenchmarkHelper.addEntry(message.getControlPacketType().toString(), clientName,System.nanoTime() - time);
+        time = System.currentTimeMillis();
+        websocketClient.setTime(time);
+        System.out.println("Running client " + clientName);
+
+        String readFilePath = this.testsDirectoryPath + clientName + ".csv";
+        try (BufferedReader br = new BufferedReader(new FileReader(readFilePath))) {
+            String line;
+            br.readLine();
+            while ((line = br.readLine()) != null) {
+                String[] messageDetails = line.split(";");
+                if (messageDetails.length > 0) {
+                    Long timeToSend = Long.parseLong(messageDetails[0]);
+                    Long delay = timeToSend - (System.currentTimeMillis() - time);
+                    System.out.println(clientName + " waiting to send message... : " + delay);
+                    while(delay >= 0) {
+                        Thread.sleep(1);
+                        delay = timeToSend - (System.currentTimeMillis() - time);
                     }
+                    parseAndSendEntry(messageDetails, clientName, websocketClient);
                 }
-            } catch (Exception e) {
-                System.out.println(e);
-                throw new Error(e);
-            } finally {
-                websocket.close();
             }
-        });
+        } catch (Exception e) {
+            System.out.println(e);
+            throw new Error(e);
+        }
+
+        try {
+            Thread.sleep( 5000);
+            System.out.println("Closing Websocket " + clientName);
+            websocketClient.close();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 
-
-    public byte[] parseTestEntry (String[]messageDetails, String clientName) throws ParseException {
+    public void parseAndSendEntry (String[] messageDetails, String clientName, WebsocketClient websocket) throws ParseException {
         String controlPacket = messageDetails[3];
         switch (controlPacket) {
             case "ping":
@@ -107,7 +104,9 @@ class BenchmarkClients implements Runnable {
                         new PINGREQPayload(new Location(lat, lon))
                 );
                 byte[] pingMsg = kryo.write(ping);
-                return pingMsg;
+                websocket.send(pingMsg);
+                BenchmarkHelper.addEntry(ping.getControlPacketType().toString(), clientName, Long.parseLong(messageDetails[0]));
+                break;
             case "subscribe":
                 Topic subTopic = new Topic(messageDetails[4]);
                 Geofence subGeofence = new Geofence(messageDetails[5]);
@@ -117,17 +116,21 @@ class BenchmarkClients implements Runnable {
                         new SUBSCRIBEPayload(subTopic, subGeofence)
                 );
                 byte[] subscribeMsg = kryo.write(subscribe);
-                return subscribeMsg;
+                websocket.send(subscribeMsg);
+                BenchmarkHelper.addEntry(subscribe.getControlPacketType().toString(), clientName, Long.parseLong(messageDetails[0]));
+                break;
             case "publish":
                 Topic pubTopic = new Topic(messageDetails[4]);
                 Geofence pubGeofence = new Geofence(messageDetails[5]);
                 ExternalMessage publish = new ExternalMessage(
                         clientName,
                         ControlPacketType.PUBLISH,
-                        new PUBLISHPayload(pubTopic, pubGeofence, "Publishing some cool stuff.")
+                        new PUBLISHPayload(pubTopic, pubGeofence, clientName + "Publishing some cool stuff.")
                 );
                 byte[] publishMsg = kryo.write(publish);
-                return publishMsg;
+                websocket.send(publishMsg);
+                BenchmarkHelper.addEntry(publish.getControlPacketType().toString(), clientName, Long.parseLong(messageDetails[0]));
+                break;
             default:
                 System.out.println("Unsupported message.");
                 throw new Error("Cannot parse Test Entry");

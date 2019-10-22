@@ -109,7 +109,7 @@ public class BenchmarkHelper {
         }
 
         public static String getCSVHeader() {
-            return "name;clientName;timestamp;time\n";
+            return "name;clientName;timestamp;time(ms)\n";
         }
 
         @Override
@@ -145,13 +145,13 @@ public class BenchmarkHelper {
 
                         BenchmarkEntry entry = BenchmarkEntry.fromString(line);
                         // get correct writer or create
-                        BufferedWriter writer = writers.get(entry.name);
+                        BufferedWriter writer = writers.get(entry.clientName);
                         if (writer == null) {
-                            System.out.println("Creating writer for {}" + entry.name);
-                            String filePath = BenchmarkHelper.directoryPath + entry.name + ".csv";
+                            System.out.println("Creating writer for {}" + entry.clientName);
+                            String filePath = BenchmarkHelper.directoryPath + entry.clientName + ".csv";
                             filePaths.add(filePath);
                             writer = new BufferedWriter(new FileWriter(new File(filePath)));
-                            writers.put(entry.name, writer);
+                            writers.put(entry.clientName, writer);
                             writer.write(BenchmarkEntry.getCSVHeader());
                         }
 
@@ -205,9 +205,9 @@ public class BenchmarkHelper {
     public static void main (String[] args) throws IOException {
         BenchmarkHelper helper = new BenchmarkHelper();
         helper.sortIntoFiles();
-        for (String path : helper.filePaths) {
-            helper.writeStatisticsForFile(path);
-        }
+//        for (String path : helper.filePaths) {
+//            helper.writeStatisticsForFile(path);
+//        }
     }
 
 }

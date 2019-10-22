@@ -3,9 +3,6 @@ package com.chaitas.distributed.geobroker.Benchmark;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ControlPacketType;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ExternalMessage;
@@ -17,28 +14,34 @@ import org.java_websocket.handshake.ServerHandshake;
 public class WebsocketClient extends WebSocketClient {
 
     private final String clientName;
-    private final BlockingQueue<ExternalMessage> queue = new ArrayBlockingQueue<>(1);
+    private Long time;
 
-    public WebsocketClient(URI serverURI, String clientName ) {
+    public WebsocketClient(URI serverURI, String clientName) {
         super( serverURI );
         this.clientName = clientName;
     }
 
     @Override
     public void onOpen( ServerHandshake handshakedata ) {
-        System.out.println("Websocket connection opnened: " + this.clientName);
+        System.out.println("Websocket connection opened: " + this.clientName);
     }
 
     @Override
     public void onMessage( String message ) {
         try {
+
             Optional<ExternalMessage> message0 = JSONable.fromJSON(message, ExternalMessage.class);
             ExternalMessage externalMessage = message0.get();
-            if(externalMessage.getControlPacketType() != ControlPacketType.PUBLISH){
-                queue.put(externalMessage);
-            } else {
-                System.out.println("PUBLISH message received!!");
-                BenchmarkHelper.addEntry(externalMessage.getControlPacketType().toString(), this.clientName,0);
+            if(externalMessage.getControlPacketType() == ControlPacketType.CONNACK) {
+                return;
+            }
+
+            long receivedTime = System.currentTimeMillis() - time;
+            System.out.println(externalMessage.getControlPacketType().toString() + " message received.");
+            if(externalMessage.getControlPacketType() == ControlPacketType.PUBLISH) {
+                BenchmarkHelper.addEntry("PUBLISH_RECEIVED", this.clientName, receivedTime);
+            } else{
+                BenchmarkHelper.addEntry(externalMessage.getControlPacketType().toString(), this.clientName, receivedTime);
             }
         }catch (Exception e) {
             System.out.println("Cannot deserialize received message");
@@ -59,11 +62,12 @@ public class WebsocketClient extends WebSocketClient {
     public String getClientName() {
         return clientName;
     }
+    public Long getTime() {
+        return time;
+    }
 
-    public ExternalMessage sendAndReceive(byte[] data, long timeoutMillis) throws InterruptedException {
-        this.send(data);
-        ExternalMessage externalMessage = queue.poll(timeoutMillis, TimeUnit.MILLISECONDS);
-        return externalMessage;
+    public void setTime(Long time) {
+        this.time = time;
     }
 
     public static void main( String[] args ) throws URISyntaxException {
