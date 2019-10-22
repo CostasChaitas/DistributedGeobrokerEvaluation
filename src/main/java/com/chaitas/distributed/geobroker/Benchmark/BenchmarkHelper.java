@@ -2,6 +2,13 @@
 
 package com.chaitas.distributed.geobroker.Benchmark;
 
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ControlPacketType;
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ExternalMessage;
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.PINGREQPayload;
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.PUBLISHPayload;
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.SUBSCRIBEPayload;
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Spatial.Geofence;
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Topic;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.io.*;
@@ -123,13 +130,20 @@ public class BenchmarkHelper {
      ****************************************************************/
 
     // contains the post-processing file names for raw data
-    private ArrayList<String> filePaths = new ArrayList<>();
+    private static ArrayList<String> filePaths = new ArrayList<>();
+    private static ArrayList<String> filePathsResults = new ArrayList<>();
+    private static ArrayList<String> filePathsMessageTypes = new ArrayList<>();
+
+    public enum SortType {
+        clientName,
+        name
+    }
 
     public BenchmarkHelper() {
 
     }
 
-    public void sortIntoFiles() throws IOException {
+    public void sortIntoFiles(ArrayList<String> sortedList, SortType sortType) throws IOException {
         System.out.println("Starting sort process");
         File directory = new File(BenchmarkHelper.directoryPath);
         HashMap<String, BufferedWriter> writers = new HashMap<>();
@@ -144,14 +158,16 @@ public class BenchmarkHelper {
                     if (!line.startsWith(BenchmarkEntry.getCSVHeader().substring(0, 5))) {
 
                         BenchmarkEntry entry = BenchmarkEntry.fromString(line);
+                        String type = sortType == SortType.clientName ? entry.clientName : entry.name;
+
                         // get correct writer or create
-                        BufferedWriter writer = writers.get(entry.clientName);
+                        BufferedWriter writer = writers.get(type);
                         if (writer == null) {
-                            System.out.println("Creating writer for {}" + entry.clientName);
-                            String filePath = BenchmarkHelper.directoryPath + entry.clientName + ".csv";
-                            filePaths.add(filePath);
+                            System.out.println("Creating writer for {}" + type);
+                            String filePath = BenchmarkHelper.directoryPath + type + ".csv";
+                            sortedList.add(filePath);
                             writer = new BufferedWriter(new FileWriter(new File(filePath)));
-                            writers.put(entry.clientName, writer);
+                            writers.put(type, writer);
                             writer.write(BenchmarkEntry.getCSVHeader());
                         }
 
@@ -168,6 +184,58 @@ public class BenchmarkHelper {
         for (BufferedWriter writer : writers.values()) {
             writer.close();
         }
+    }
+
+    public ControlPacketType mapMessageTypes(ControlPacketType controlPacketType) {
+        switch (controlPacketType) {
+            case CONNECT:
+                return controlPacketType.CONNACK;
+            case PINGREQ:
+                return controlPacketType.PINGRESP;
+            case SUBSCRIBE:
+                return controlPacketType.SUBACK;
+            case UNSUBSCRIBE:
+                return controlPacketType.UNSUBACK;
+            case PUBLISH:
+                return controlPacketType.PUBACK;
+            default:
+                return controlPacketType.INCOMPATIBLEPayload;
+        }
+    }
+
+    public void calculateResponses(String filePath) throws IOException {
+
+        System.out.println(filePath);
+        String resultfilePath = filePath.replaceFirst(".csv", "") + "-results.csv";
+        BenchmarkEntry entryReq = null;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath));
+             BufferedWriter wr = new BufferedWriter(new FileWriter(new File(resultfilePath))) ) {
+
+            wr.write(BenchmarkEntry.getCSVHeader());
+            String line;
+            br.readLine();
+            while ((line = br.readLine()) != null) {
+                BenchmarkEntry entry = BenchmarkEntry.fromString(line);
+                if (entry.name == null) {
+                    throw new RuntimeException("Nulls not supported");
+                }
+                if(entry.name.equals("PUBLISH_RECEIVED")){
+                    continue;
+                }
+
+                if(entryReq != null && ControlPacketType.valueOf(entry.name) == mapMessageTypes(ControlPacketType.valueOf(entryReq.name))) {
+                    entry.time = entry.time - entryReq.time;
+                    wr.write(entry.toString());
+                    filePathsResults.add(resultfilePath);
+                    entryReq = null;
+                } else {
+                    entryReq = entry;
+                }
+
+            }
+        }
+
     }
 
     public void writeStatisticsForFile(String filePath) throws IOException {
@@ -204,10 +272,18 @@ public class BenchmarkHelper {
 
     public static void main (String[] args) throws IOException {
         BenchmarkHelper helper = new BenchmarkHelper();
-        helper.sortIntoFiles();
-//        for (String path : helper.filePaths) {
-//            helper.writeStatisticsForFile(path);
-//        }
+
+        helper.sortIntoFiles(filePaths, SortType.clientName);
+
+        for (String path : helper.filePaths) {
+            helper.calculateResponses(path);
+        }
+
+        helper.sortIntoFiles(filePathsMessageTypes, SortType.name);
+
+        for (String path : helper.filePathsMessageTypes) {
+            helper.writeStatisticsForFile(path);
+        }
     }
 
 }
