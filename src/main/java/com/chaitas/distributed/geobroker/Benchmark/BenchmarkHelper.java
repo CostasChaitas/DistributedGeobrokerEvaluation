@@ -130,7 +130,7 @@ public class BenchmarkHelper {
      ****************************************************************/
 
     // contains the post-processing file names for raw data
-    private static ArrayList<String> filePaths = new ArrayList<>();
+    private static ArrayList<String> filePathsClients = new ArrayList<>();
     private static ArrayList<String> filePathsResults = new ArrayList<>();
     private static ArrayList<String> filePathsMessageTypes = new ArrayList<>();
 
@@ -143,42 +143,48 @@ public class BenchmarkHelper {
 
     }
 
-    public void sortIntoFiles(ArrayList<String> sortedList, SortType sortType) throws IOException {
+    public void sortIntoFiles(String directoryName, String resultsPath, ArrayList<String> sortedList, SortType sortType) throws IOException {
         System.out.println("Starting sort process");
-        File directory = new File(BenchmarkHelper.directoryPath);
+        File directory = new File(BenchmarkHelper.directoryPath + directoryName);
         HashMap<String, BufferedWriter> writers = new HashMap<>();
 
         // read in each file
         for (File f : Objects.requireNonNull(directory.listFiles())) {
             System.out.println("Starting with file {}" +  f.getName());
-            Stream<String> stream = Files.lines(Paths.get(f.getPath()));
-            stream.forEach(line -> {
-                try {
-                    // we do not want the header
-                    if (!line.startsWith(BenchmarkEntry.getCSVHeader().substring(0, 5))) {
+            if(new File(f.getPath()).isFile()) {
+                Stream<String> stream = Files.lines(Paths.get(f.getPath()));
+                stream.forEach(line -> {
+                    try {
+                        // we do not want the header
+                        if (!line.startsWith(BenchmarkEntry.getCSVHeader().substring(0, 5))) {
 
-                        BenchmarkEntry entry = BenchmarkEntry.fromString(line);
-                        String type = sortType == SortType.clientName ? entry.clientName : entry.name;
+                            BenchmarkEntry entry = BenchmarkEntry.fromString(line);
+                            String type = sortType == SortType.clientName ? entry.clientName : entry.name;
 
-                        // get correct writer or create
-                        BufferedWriter writer = writers.get(type);
-                        if (writer == null) {
-                            System.out.println("Creating writer for {}" + type);
-                            String filePath = BenchmarkHelper.directoryPath + type + ".csv";
-                            sortedList.add(filePath);
-                            writer = new BufferedWriter(new FileWriter(new File(filePath)));
-                            writers.put(type, writer);
-                            writer.write(BenchmarkEntry.getCSVHeader());
+                            // get correct writer or create
+                            BufferedWriter writer = writers.get(type);
+                            if (writer == null) {
+                                File file = new File(BenchmarkHelper.directoryPath + resultsPath);
+                                if (file.mkdirs() || file.exists()) {
+                                    String filePath = BenchmarkHelper.directoryPath + resultsPath + type + ".csv";
+                                    writer = new BufferedWriter(new FileWriter(filePath));
+                                    sortedList.add(filePath);
+                                    writers.put(type, writer);
+                                    writer.write(BenchmarkEntry.getCSVHeader());
+                                } else {
+                                    System.out.println("Could not find directory path : " + BenchmarkHelper.directoryPath + resultsPath);
+                                }
+                            }
+
+                            // write to correct writer
+                            writer.write(entry.toString());
                         }
-
-                        // write to correct writer
-                        writer.write(entry.toString());
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-            System.out.println("Finished file {}" + f.getName());
+                });
+            }
+
         }
         // close all writers
         for (BufferedWriter writer : writers.values()) {
@@ -203,38 +209,52 @@ public class BenchmarkHelper {
         }
     }
 
-    public void calculateResponses(String filePath) throws IOException {
+    public void calculateResponses(String resultsPath, ArrayList<String> filePaths) throws IOException {
 
-        System.out.println(filePath);
-        String resultfilePath = filePath.replaceFirst(".csv", "") + "-results.csv";
-        BenchmarkEntry entryReq = null;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath));
-             BufferedWriter wr = new BufferedWriter(new FileWriter(new File(resultfilePath))) ) {
+        File file = new File(BenchmarkHelper.directoryPath + resultsPath);
 
-            wr.write(BenchmarkEntry.getCSVHeader());
-            String line;
-            br.readLine();
-            while ((line = br.readLine()) != null) {
-                BenchmarkEntry entry = BenchmarkEntry.fromString(line);
-                if (entry.name == null) {
-                    throw new RuntimeException("Nulls not supported");
+        if (file.mkdirs() || file.exists()) {
+
+            for (String path : filePaths) {
+
+                System.out.println(filePaths);
+
+                BenchmarkEntry entryReq = null;
+
+                String filePath =  path.replaceFirst("clients", resultsPath).replaceFirst(".csv", "") + "-results.csv";
+
+                try (BufferedReader br = new BufferedReader(new FileReader(path));
+                     BufferedWriter wr = new BufferedWriter(new FileWriter(filePath)) ) {
+
+
+                    wr.write(BenchmarkEntry.getCSVHeader());
+                    String line;
+                    br.readLine();
+                    while ((line = br.readLine()) != null) {
+                        BenchmarkEntry entry = BenchmarkEntry.fromString(line);
+                        if (entry.name == null) {
+                            throw new RuntimeException("Nulls not supported");
+                        }
+                        if (entry.name.equals("PUBLISH_RECEIVED")) {
+                            continue;
+                        }
+
+                        if (entryReq != null && ControlPacketType.valueOf(entry.name) == mapMessageTypes(ControlPacketType.valueOf(entryReq.name))) {
+                            entry.name = entryReq.name;
+                            entry.time = entry.time - entryReq.time;
+                            wr.write(entry.toString());
+                            filePathsResults.add(filePath);
+                            entryReq = null;
+                        } else {
+                            entryReq = entry;
+                        }
+                    }
+
                 }
-                if(entry.name.equals("PUBLISH_RECEIVED")){
-                    continue;
-                }
-
-                if(entryReq != null && ControlPacketType.valueOf(entry.name) == mapMessageTypes(ControlPacketType.valueOf(entryReq.name))) {
-                    entry.time = entry.time - entryReq.time;
-                    wr.write(entry.toString());
-                    filePathsResults.add(resultfilePath);
-                    entryReq = null;
-                } else {
-                    entryReq = entry;
-                }
-
             }
         }
+
 
     }
 
@@ -271,15 +291,14 @@ public class BenchmarkHelper {
     }
 
     public static void main (String[] args) throws IOException {
+
         BenchmarkHelper helper = new BenchmarkHelper();
 
-        helper.sortIntoFiles(filePaths, SortType.clientName);
+        helper.sortIntoFiles("", "/clients/", filePathsClients, SortType.clientName);
 
-        for (String path : helper.filePaths) {
-            helper.calculateResponses(path);
-        }
+        helper.calculateResponses( "/clientResults/" , filePathsClients);
 
-        helper.sortIntoFiles(filePathsMessageTypes, SortType.name);
+        helper.sortIntoFiles("clientResults", "/stats/", filePathsMessageTypes, SortType.name);
 
         for (String path : helper.filePathsMessageTypes) {
             helper.writeStatisticsForFile(path);
