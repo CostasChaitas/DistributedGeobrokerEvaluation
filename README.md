@@ -22,6 +22,10 @@ There are 4 different scenarios that generate test data for the benchmark and ca
 
 In order to generate test data, firstly you have to run the Kotlin Class(es). A new folder with the test data will be created in the top level of this project.
 
+Run the following command, by adjusting the desired Kotlin class: 
+```
+mvn exec:java -Dexec.mainClass=com.chaitas.distributed.geobroker.TestGenerators.second.OpenDataKt
+```
 
 ## Run Benchmark
 
