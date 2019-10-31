@@ -51,6 +51,8 @@ A folder called `benchmarking_results` will be created containing the results of
 
 In order to generate some useful statistics from the results of the benchmark, like median or the mean request/response time, you can run the **BenchmarHelper** class. This will generate some extra files in the `benchmarking_results` folder with some useful statistics.
  
-
+```
+mvn exec:java -Dexec.mainClass=com.chaitas.distributed.geobroker.Benchmark.BenchmarkHelper
+```
 
 
