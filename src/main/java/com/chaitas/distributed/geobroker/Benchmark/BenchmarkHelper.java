@@ -150,7 +150,6 @@ public class BenchmarkHelper {
 
         // read in each file
         for (File f : Objects.requireNonNull(directory.listFiles())) {
-            System.out.println("Starting with file {}" +  f.getName());
             if(new File(f.getPath()).isFile()) {
                 Stream<String> stream = Files.lines(Paths.get(f.getPath()));
                 stream.forEach(line -> {
@@ -211,14 +210,13 @@ public class BenchmarkHelper {
 
     public void calculateResponses(String resultsPath, ArrayList<String> filePaths) throws IOException {
 
+        System.out.println("Starting calculating response time");
 
         File file = new File(BenchmarkHelper.directoryPath + resultsPath);
 
         if (file.mkdirs() || file.exists()) {
 
             for (String path : filePaths) {
-
-                System.out.println(filePaths);
 
                 BenchmarkEntry entryReq = null;
 
@@ -259,6 +257,7 @@ public class BenchmarkHelper {
     }
 
     public void writeStatisticsForFile(String filePath) throws IOException {
+        System.out.println("Starting calculating statistics");
         DescriptiveStatistics stats = new DescriptiveStatistics();
 
         // read in data

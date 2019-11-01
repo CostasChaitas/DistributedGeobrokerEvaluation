@@ -33,7 +33,9 @@ class BenchmarkClient implements Runnable {
         try {
             websocketClient = new WebsocketClient(new URI(this.apiURL), clientName);
             this.createClientWebsocket();
-            this.connectClientWebsocket();
+            if(websocketClient.isOpen() == true) {
+                this.connectClientWebsocket();
+            }
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
@@ -74,7 +76,8 @@ class BenchmarkClient implements Runnable {
                         Thread.sleep(1);
                         delay = timeToSend - (System.currentTimeMillis() - time);
                     }
-                    parseAndSendEntry(messageDetails, clientName, websocketClient);
+                    ExternalMessage message = parseAndSendEntry(messageDetails, clientName, websocketClient);
+                    BenchmarkHelper.addEntry(message.getControlPacketType().toString(), clientName, System.currentTimeMillis() - time);
                 }
             }
         } catch (Exception e) {
@@ -92,7 +95,7 @@ class BenchmarkClient implements Runnable {
 
     }
 
-    public void parseAndSendEntry (String[] messageDetails, String clientName, WebsocketClient websocket) throws ParseException {
+    public ExternalMessage parseAndSendEntry (String[] messageDetails, String clientName, WebsocketClient websocket) throws ParseException {
         String controlPacket = messageDetails[3];
         switch (controlPacket) {
             case "ping":
@@ -105,8 +108,7 @@ class BenchmarkClient implements Runnable {
                 );
                 byte[] pingMsg = kryo.write(ping);
                 websocket.send(pingMsg);
-                BenchmarkHelper.addEntry(ping.getControlPacketType().toString(), clientName, Long.parseLong(messageDetails[0]));
-                break;
+                return ping;
             case "subscribe":
                 Topic subTopic = new Topic(messageDetails[4]);
                 Geofence subGeofence = new Geofence(messageDetails[5]);
@@ -117,8 +119,7 @@ class BenchmarkClient implements Runnable {
                 );
                 byte[] subscribeMsg = kryo.write(subscribe);
                 websocket.send(subscribeMsg);
-                BenchmarkHelper.addEntry(subscribe.getControlPacketType().toString(), clientName, Long.parseLong(messageDetails[0]));
-                break;
+                return subscribe;
             case "publish":
                 Topic pubTopic = new Topic(messageDetails[4]);
                 Geofence pubGeofence = new Geofence(messageDetails[5]);
@@ -129,8 +130,7 @@ class BenchmarkClient implements Runnable {
                 );
                 byte[] publishMsg = kryo.write(publish);
                 websocket.send(publishMsg);
-                BenchmarkHelper.addEntry(publish.getControlPacketType().toString(), clientName, Long.parseLong(messageDetails[0]));
-                break;
+                return publish;
             default:
                 System.out.println("Unsupported message.");
                 throw new Error("Cannot parse Test Entry");
