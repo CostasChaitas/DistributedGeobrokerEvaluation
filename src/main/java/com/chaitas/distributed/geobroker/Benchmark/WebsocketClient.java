@@ -37,7 +37,7 @@ public class WebsocketClient extends WebSocketClient {
             }
 
             long receivedTime = System.currentTimeMillis() - time;
-            System.out.println(externalMessage.getControlPacketType().toString() + " message received.");
+            System.out.println(clientName + " received message : " + externalMessage.getControlPacketType().toString());
             if(externalMessage.getControlPacketType() == ControlPacketType.PUBLISH) {
                 BenchmarkHelper.addEntry("PUBLISH_RECEIVED", this.clientName, receivedTime);
             } else{

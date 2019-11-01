@@ -71,13 +71,15 @@ class BenchmarkClient implements Runnable {
                 if (messageDetails.length > 0) {
                     Long timeToSend = Long.parseLong(messageDetails[0]);
                     Long delay = timeToSend - (System.currentTimeMillis() - time);
-                    System.out.println(clientName + " waiting to send message... : " + delay);
                     while(delay >= 0) {
                         Thread.sleep(1);
                         delay = timeToSend - (System.currentTimeMillis() - time);
                     }
-                    ExternalMessage message = parseAndSendEntry(messageDetails, clientName, websocketClient);
+                    ExternalMessage message = parseEntry(messageDetails, clientName);
+                    byte[] arr = kryo.write(message);
                     BenchmarkHelper.addEntry(message.getControlPacketType().toString(), clientName, System.currentTimeMillis() - time);
+                    System.out.println(clientName + " sending message : " + message.getControlPacketType().toString());
+                    websocketClient.send(arr);
                 }
             }
         } catch (Exception e) {
@@ -95,7 +97,7 @@ class BenchmarkClient implements Runnable {
 
     }
 
-    public ExternalMessage parseAndSendEntry (String[] messageDetails, String clientName, WebsocketClient websocket) throws ParseException {
+    public ExternalMessage parseEntry (String[] messageDetails, String clientName) throws ParseException {
         String controlPacket = messageDetails[3];
         switch (controlPacket) {
             case "ping":
@@ -106,8 +108,6 @@ class BenchmarkClient implements Runnable {
                         ControlPacketType.PINGREQ,
                         new PINGREQPayload(new Location(lat, lon))
                 );
-                byte[] pingMsg = kryo.write(ping);
-                websocket.send(pingMsg);
                 return ping;
             case "subscribe":
                 Topic subTopic = new Topic(messageDetails[4]);
@@ -117,8 +117,6 @@ class BenchmarkClient implements Runnable {
                         ControlPacketType.SUBSCRIBE,
                         new SUBSCRIBEPayload(subTopic, subGeofence)
                 );
-                byte[] subscribeMsg = kryo.write(subscribe);
-                websocket.send(subscribeMsg);
                 return subscribe;
             case "publish":
                 Topic pubTopic = new Topic(messageDetails[4]);
@@ -126,10 +124,8 @@ class BenchmarkClient implements Runnable {
                 ExternalMessage publish = new ExternalMessage(
                         clientName,
                         ControlPacketType.PUBLISH,
-                        new PUBLISHPayload(pubTopic, pubGeofence, clientName + "Publishing some cool stuff.")
+                        new PUBLISHPayload(pubTopic, pubGeofence, clientName + ": Publishing some cool stuff.")
                 );
-                byte[] publishMsg = kryo.write(publish);
-                websocket.send(publishMsg);
                 return publish;
             default:
                 System.out.println("Unsupported message.");
