@@ -14,9 +14,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -218,19 +216,19 @@ public class BenchmarkHelper {
 
             for (String path : filePaths) {
 
-                BenchmarkEntry entryReq = null;
-
                 String filePath =  path.replaceFirst("clients", resultsPath).replaceFirst(".csv", "") + "-results.csv";
 
                 try (BufferedReader br = new BufferedReader(new FileReader(path));
                      BufferedWriter wr = new BufferedWriter(new FileWriter(filePath)) ) {
 
+                    List<BenchmarkEntry> entryReqs = new ArrayList<>();
 
                     wr.write(BenchmarkEntry.getCSVHeader());
                     String line;
                     br.readLine();
                     while ((line = br.readLine()) != null) {
                         BenchmarkEntry entry = BenchmarkEntry.fromString(line);
+                        Boolean matchFound = false;
                         if (entry.name == null) {
                             throw new RuntimeException("Nulls not supported");
                         }
@@ -238,22 +236,38 @@ public class BenchmarkHelper {
                             continue;
                         }
 
-                        if (entryReq != null && ControlPacketType.valueOf(entry.name) == mapMessageTypes(ControlPacketType.valueOf(entryReq.name))) {
-                            entry.name = entryReq.name;
-                            entry.time = entry.time - entryReq.time;
-                            wr.write(entry.toString());
-                            filePathsResults.add(filePath);
-                            entryReq = null;
-                        } else {
-                            entryReq = entry;
+                        if(entryReqs.size() == 0) {
+                            entryReqs.add(entry);
+                            continue;
                         }
+
+                        for (Iterator<BenchmarkEntry> iterator = entryReqs.iterator(); iterator.hasNext(); ) {
+                            BenchmarkEntry entryReq = iterator.next();
+                            if (!matchFound && ControlPacketType.valueOf(entry.name) == mapMessageTypes(ControlPacketType.valueOf(entryReq.name))) {
+                                try {
+                                    entry.name = entryReq.name;
+                                    entry.time = entry.time - entryReq.time;
+                                    wr.write(entry.toString());
+                                    filePathsResults.add(filePath);
+                                    iterator.remove();
+                                    matchFound = true;
+                                    continue;
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+
+                                }
+                            }
+                        }
+
+                        if(!matchFound){
+                            entryReqs.add(entry);
+                        }
+
                     }
 
                 }
             }
         }
-
-
     }
 
     public void writeStatisticsForFile(String filePath) throws IOException {
