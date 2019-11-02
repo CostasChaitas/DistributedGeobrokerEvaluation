@@ -29,17 +29,15 @@ public class WebsocketClient extends WebSocketClient {
     @Override
     public void onMessage( String message ) {
         try {
-
             Optional<ExternalMessage> message0 = JSONable.fromJSON(message, ExternalMessage.class);
             ExternalMessage externalMessage = message0.get();
             if(externalMessage.getControlPacketType() == ControlPacketType.CONNACK) {
                 return;
             }
-
             long receivedTime = System.currentTimeMillis() - time;
             System.out.println(clientName + " received message : " + externalMessage.getControlPacketType().toString());
             if(externalMessage.getControlPacketType() == ControlPacketType.PUBLISH) {
-                BenchmarkHelper.addEntry("PUBLISH_RECEIVED", this.clientName, receivedTime);
+                BenchmarkHelper.addEntry("PUBLISH_RECEIVED", externalMessage.getClientIdentifier(), receivedTime);
             } else{
                 BenchmarkHelper.addEntry(externalMessage.getControlPacketType().toString(), this.clientName, receivedTime);
             }
@@ -62,6 +60,7 @@ public class WebsocketClient extends WebSocketClient {
     public String getClientName() {
         return clientName;
     }
+
     public Long getTime() {
         return time;
     }

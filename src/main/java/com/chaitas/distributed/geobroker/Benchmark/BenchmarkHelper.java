@@ -129,6 +129,7 @@ public class BenchmarkHelper {
 
     // contains the post-processing file names for raw data
     private static ArrayList<String> filePathsClients = new ArrayList<>();
+    private static ArrayList<String> filePathsSortedClients = new ArrayList<>();
     private static ArrayList<String> filePathsResults = new ArrayList<>();
     private static ArrayList<String> filePathsMessageTypes = new ArrayList<>();
 
@@ -189,6 +190,55 @@ public class BenchmarkHelper {
         }
     }
 
+
+    public void sortByMessageTime(String directoryName, String resultsPath, ArrayList<String> sortedList) throws IOException {
+        System.out.println("Starting sort process by message time");
+        File directory = new File(BenchmarkHelper.directoryPath + directoryName);
+        File resultsDirectory = new File(BenchmarkHelper.directoryPath + resultsPath);
+
+        HashMap<String, BufferedWriter> writers = new HashMap<>();
+
+        if (resultsDirectory.mkdirs() || resultsDirectory.exists()) {
+            // read in each file
+            for (File f : Objects.requireNonNull(directory.listFiles())) {
+                if(new File(f.getPath()).isFile()) {
+
+                    String filePath =  f.getPath().replaceFirst("clients", resultsPath).replaceFirst(".csv", "") + "-sorted.csv";
+
+                    try (BufferedReader br = new BufferedReader(new FileReader(f));
+                         BufferedWriter wr = new BufferedWriter(new FileWriter(filePath)) ) {
+
+                        Map<Long, List<String>> map = new TreeMap<>();
+
+                        wr.write(BenchmarkEntry.getCSVHeader());
+                        String line;
+                        br.readLine();
+                        while ((line = br.readLine()) != null) {
+                            BenchmarkEntry entry = BenchmarkEntry.fromString(line);
+
+                            List<String> l = map.get(entry.time);
+                            if (l == null) {
+                                l = new LinkedList<>();
+                                map.put(entry.time, l);
+                            }
+                            l.add(line);
+                        }
+
+                        for (List<String> list : map.values()) {
+                            for (String val : list) {
+                                wr.write(val);
+                                wr.write("\n");
+                            }
+                        }
+
+                        sortedList.add(filePath);
+                    }
+
+                }
+            }
+        }
+    }
+
     public ControlPacketType mapMessageTypes(ControlPacketType controlPacketType) {
         switch (controlPacketType) {
             case CONNECT:
@@ -216,7 +266,7 @@ public class BenchmarkHelper {
 
             for (String path : filePaths) {
 
-                String filePath =  path.replaceFirst("clients", resultsPath).replaceFirst(".csv", "") + "-results.csv";
+                String filePath =  path.replaceFirst("sortedClients", resultsPath).replaceFirst(".csv", "") + "-results.csv";
 
                 try (BufferedReader br = new BufferedReader(new FileReader(path));
                      BufferedWriter wr = new BufferedWriter(new FileWriter(filePath)) ) {
@@ -254,7 +304,6 @@ public class BenchmarkHelper {
                                     continue;
                                 } catch (IOException e) {
                                     e.printStackTrace();
-
                                 }
                             }
                         }
@@ -303,13 +352,17 @@ public class BenchmarkHelper {
         writer.close();
     }
 
+
+
     public static void main (String[] args) throws IOException {
 
         BenchmarkHelper helper = new BenchmarkHelper();
 
         helper.sortIntoFiles("", "/clients/", filePathsClients, SortType.clientName);
 
-        helper.calculateResponses( "/clientResults/" , filePathsClients);
+        helper.sortByMessageTime("/clients", "/sortedClients", filePathsSortedClients);
+
+        helper.calculateResponses( "/clientResults/", filePathsSortedClients);
 
         helper.sortIntoFiles("clientResults", "/stats/", filePathsMessageTypes, SortType.name);
 

@@ -33,9 +33,7 @@ class BenchmarkClient implements Runnable {
         try {
             websocketClient = new WebsocketClient(new URI(this.apiURL), clientName);
             this.createClientWebsocket();
-            if(websocketClient.isOpen() == true) {
-                this.connectClientWebsocket();
-            }
+            this.connectClientWebsocket();
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
@@ -71,10 +69,7 @@ class BenchmarkClient implements Runnable {
                 if (messageDetails.length > 0) {
                     Long timeToSend = Long.parseLong(messageDetails[0]);
                     Long delay = timeToSend - (System.currentTimeMillis() - time);
-                    while(delay >= 0) {
-                        Thread.sleep(1);
-                        delay = timeToSend - (System.currentTimeMillis() - time);
-                    }
+                    Thread.sleep(delay);
                     ExternalMessage message = parseEntry(messageDetails, clientName);
                     byte[] arr = kryo.write(message);
                     BenchmarkHelper.addEntry(message.getControlPacketType().toString(), clientName, System.currentTimeMillis() - time);
@@ -94,8 +89,8 @@ class BenchmarkClient implements Runnable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
     }
+
 
     public ExternalMessage parseEntry (String[] messageDetails, String clientName) throws ParseException {
         String controlPacket = messageDetails[3];
