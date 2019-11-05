@@ -76,8 +76,8 @@ class BenchmarkClient implements Runnable {
                 if (messageDetails.length > 0) {
                     Long timeToSend = Long.parseLong(messageDetails[0]);
                     Long delay = timeToSend - (System.currentTimeMillis() - time);
-                    if(delay > maxMessageTime){
-                        maxMessageTime = delay;
+                    if(timeToSend > maxMessageTime){
+                        maxMessageTime = timeToSend;
                     }
 
                     executor.schedule(() -> {
@@ -104,6 +104,7 @@ class BenchmarkClient implements Runnable {
         try {
             executor.shutdown();
             executor.awaitTermination(maxMessageTime + 5000, TimeUnit.MILLISECONDS);
+            Thread.sleep(15000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {

@@ -2,8 +2,6 @@
 
 package com.chaitas.distributed.geobroker.Benchmark;
 
-import sun.jvm.hotspot.runtime.Threads;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
