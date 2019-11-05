@@ -35,15 +35,15 @@ public class Benchmark {
         System.out.println("Running Benchmark");
         System.out.println("Available processors: " + Runtime.getRuntime().availableProcessors());
 
-        List<Thread> runnables = new ArrayList<>();
+        List<BenchmarkClient> runnables = new ArrayList<>();
         Integer numOfClients = 0;
 
         File directory = new File(this.testsDirectoryPath);
         for (File f : Objects.requireNonNull(directory.listFiles())) {
             if (f.getName().endsWith(".csv")) {
                 String clientName = f.getName().replaceFirst("[.][^.]+$", "");
-                Thread thread = new Thread(new BenchmarkClient(clientName, testsDirectoryPath, apiURL));
-                runnables.add(thread);
+                BenchmarkClient benchmarkClient = new BenchmarkClient(clientName, testsDirectoryPath, apiURL);
+                runnables.add(benchmarkClient);
                 numOfClients++;
             }
         }
