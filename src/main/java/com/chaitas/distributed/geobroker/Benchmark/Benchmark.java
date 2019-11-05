@@ -2,6 +2,8 @@
 
 package com.chaitas.distributed.geobroker.Benchmark;
 
+import sun.jvm.hotspot.runtime.Threads;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,15 +37,15 @@ public class Benchmark {
         System.out.println("Running Benchmark");
         System.out.println("Available processors: " + Runtime.getRuntime().availableProcessors());
 
-        List<BenchmarkClient> runnables = new ArrayList<>();
+        List<Thread> runnables = new ArrayList<>();
         Integer numOfClients = 0;
 
         File directory = new File(this.testsDirectoryPath);
         for (File f : Objects.requireNonNull(directory.listFiles())) {
             if (f.getName().endsWith(".csv")) {
                 String clientName = f.getName().replaceFirst("[.][^.]+$", "");
-                BenchmarkClient benchmarkClient = new BenchmarkClient(clientName, testsDirectoryPath, apiURL);
-                runnables.add(benchmarkClient);
+                Thread thread = new Thread(new BenchmarkClient(clientName, testsDirectoryPath, apiURL));
+                runnables.add(thread);
                 numOfClients++;
             }
         }
