@@ -22,7 +22,7 @@ public class Benchmark {
 
     public void setUp() {
         System.out.println("Running setUp");
-        BenchmarkHelper.startBenchmarking();
+        BenchmarkHelper.startBenchmarking(testsDirectoryPath);
     }
 
     public void tearDown() {

@@ -27,11 +27,16 @@ public class BenchmarkHelper {
     private static final BlockingQueue<BenchmarkEntry> benchmarkEntryStorage = new ArrayBlockingQueue<>(CAPACITY);
     private static final AtomicInteger putElementCount = new AtomicInteger(0);
 
-    public static void startBenchmarking() {
+    public static void startBenchmarking(String testsDirectoryPath) {
         File f = new File(directoryPath);
         if (f.mkdirs() || f.exists()) {
-            BenchmarkHelper.benchmarking.set(true);
-            System.out.println("Activated benchmarking");
+            try {
+                Files.copy(new File(testsDirectoryPath + "00_summary.txt").toPath(), new File(BenchmarkHelper.directoryPath + "results.txt").toPath());
+                BenchmarkHelper.benchmarking.set(true);
+                System.out.println("Activated benchmarking");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } else {
             System.out.println("Could not activate benchmarking");
         }
@@ -260,6 +265,9 @@ public class BenchmarkHelper {
 
         File file = new File(BenchmarkHelper.directoryPath + resultsPath);
 
+        Integer totalMessages = 0;
+        Integer publishReceivedCounter = 0;
+
         if (file.mkdirs() || file.exists()) {
 
             for (String path : filePaths) {
@@ -280,7 +288,9 @@ public class BenchmarkHelper {
                         if (entry.name == null) {
                             throw new RuntimeException("Nulls not supported");
                         }
+                        totalMessages++;
                         if (entry.name.equals("PUBLISH_RECEIVED")) {
+                            publishReceivedCounter++;
                             continue;
                         }
 
@@ -316,6 +326,12 @@ public class BenchmarkHelper {
                 }
             }
         }
+
+        Writer writerRes = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(BenchmarkHelper.directoryPath + "results.txt", true), "UTF-8"));
+        writerRes.append("\n" + "Total messages delivered: " + totalMessages + "\n");
+        writerRes.append("Total PUBLISH match messages: " + publishReceivedCounter + "\n");
+        writerRes.close();
     }
 
     public void writeStatisticsForFile(String filePath) throws IOException {
@@ -349,6 +365,15 @@ public class BenchmarkHelper {
         writer.write("standard deviation;" + std + "\n");
         writer.write("median;" + median + "\n");
         writer.close();
+
+        Writer writerRes = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(BenchmarkHelper.directoryPath + "results.txt", true), "UTF-8"));
+        writerRes.append("\n" + filePath.substring(filePath.lastIndexOf("/") + 1).replace(".csv", "") + ":" + "\n");
+        writerRes.append("\t" + "n;" + n + "\n");
+        writerRes.append("\t" +"mean;" + mean + "\n");
+        writerRes.append("\t" +"standard deviation;" + std + "\n");
+        writerRes.append("\t" +"median;" + median + "\n");
+        writerRes.close();
     }
 
 
