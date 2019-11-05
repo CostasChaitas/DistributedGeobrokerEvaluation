@@ -3,15 +3,10 @@
 package com.chaitas.distributed.geobroker.Benchmark;
 
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ControlPacketType;
-import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ExternalMessage;
-import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.PINGREQPayload;
-import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.PUBLISHPayload;
-import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.SUBSCRIBEPayload;
-import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Spatial.Geofence;
-import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Topic;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -42,12 +37,12 @@ public class BenchmarkHelper {
         }
     }
 
-    public static void addEntry(String name, String clientName, long time) {
+    public static void addEntry(String name, String messageId, String clientName, long time) {
         if (!benchmarking.get()) {
             return;
         }
 
-        BenchmarkEntry entry = new BenchmarkEntry(name, clientName, System.currentTimeMillis(), time);
+        BenchmarkEntry entry = new BenchmarkEntry(name, messageId, clientName, System.currentTimeMillis(), time);
         int timeToFlush = putElementCount.incrementAndGet() % FLUSH_COUNT;
         benchmarkEntryStorage.offer(entry);
         if (timeToFlush == 0) {
@@ -93,12 +88,14 @@ public class BenchmarkHelper {
 
     public static class BenchmarkEntry {
         public String name;
+        public String messageId;
         public String clientName;
         public long timestamp;
         public long time;
 
-        public BenchmarkEntry(String name, String clientName, long timestamp, long time) {
+        public BenchmarkEntry(String name, String messageId, String clientName, long timestamp, long time) {
             this.name = name;
+            this.messageId = messageId;
             this.clientName = clientName;
             this.timestamp = timestamp;
             this.time = time;
@@ -106,20 +103,20 @@ public class BenchmarkHelper {
 
         public static BenchmarkEntry fromString(String s) {
             String[] entries = s.split(";");
-            if (entries.length == 4) {
-                return new BenchmarkEntry(entries[0], entries[1], Long.valueOf(entries[2]), Long.valueOf(entries[3]));
+            if (entries.length == 5) {
+                return new BenchmarkEntry(entries[0], entries[1], entries[2], Long.valueOf(entries[3]), Long.valueOf(entries[4]));
             } else {
-                return new BenchmarkEntry("null", "null",0, 0);
+                return new BenchmarkEntry("null", "null","null",0, 0);
             }
         }
 
         public static String getCSVHeader() {
-            return "name;clientName;timestamp;time(ms)\n";
+            return "name;messageId;clientName;timestamp;time(ms)\n";
         }
 
         @Override
         public String toString() {
-            return String.format("%s;%s;%d;%d\n", name, clientName, timestamp, time);
+            return String.format("%s;%s;%s;%d;%d\n", name, messageId, clientName, timestamp, time);
         }
     }
 
@@ -150,7 +147,7 @@ public class BenchmarkHelper {
         // read in each file
         for (File f : Objects.requireNonNull(directory.listFiles())) {
             if(new File(f.getPath()).isFile()) {
-                Stream<String> stream = Files.lines(Paths.get(f.getPath()));
+                Stream<String> stream = Files.lines(Paths.get(f.getPath()), Charset.forName("ISO-8859-1"));
                 stream.forEach(line -> {
                     try {
                         // we do not want the header
@@ -165,6 +162,7 @@ public class BenchmarkHelper {
                                 File file = new File(BenchmarkHelper.directoryPath + resultsPath);
                                 if (file.mkdirs() || file.exists()) {
                                     String filePath = BenchmarkHelper.directoryPath + resultsPath + type + ".csv";
+                                    if(filePath.contains("null.csv")) return;
                                     writer = new BufferedWriter(new FileWriter(filePath));
                                     sortedList.add(filePath);
                                     writers.put(type, writer);
@@ -293,7 +291,8 @@ public class BenchmarkHelper {
 
                         for (Iterator<BenchmarkEntry> iterator = entryReqs.iterator(); iterator.hasNext(); ) {
                             BenchmarkEntry entryReq = iterator.next();
-                            if (!matchFound && ControlPacketType.valueOf(entry.name) == mapMessageTypes(ControlPacketType.valueOf(entryReq.name))) {
+                            if (!matchFound && ControlPacketType.valueOf(entry.name) == mapMessageTypes(ControlPacketType.valueOf(entryReq.name)) &&
+                            entry.messageId.equals(entryReq.messageId)) {
                                 try {
                                     entry.name = entryReq.name;
                                     entry.time = entry.time - entryReq.time;

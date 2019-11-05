@@ -214,6 +214,7 @@ public class KryoSerializerPool {
 
             kryo.register(ExternalMessage.class, new Serializer<ExternalMessage>() {
                 public void write (Kryo kryo, Output output, ExternalMessage object) {
+                    kryo.writeObjectOrNull(output, object.getId(), String.class);
                     kryo.writeObjectOrNull(output, object.getClientIdentifier(), String.class);
                     kryo.writeObjectOrNull(output, object.getControlPacketType(), ControlPacketType.class);
                     switch(object.getControlPacketType()){
@@ -261,48 +262,49 @@ public class KryoSerializerPool {
                 }
 
                 public ExternalMessage read (Kryo kryo, Input input, Class<ExternalMessage> type) {
+                    String id = kryo.readObjectOrNull(input, String.class);
                     String clientIdentifier = kryo.readObjectOrNull(input, String.class);
                     ControlPacketType controlPacketType = kryo.readObjectOrNull(input, ControlPacketType.class);
                     switch(controlPacketType){
                         case CONNACK:
                             CONNACKPayload connackPayload = kryo.readObjectOrNull(input, CONNACKPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, connackPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, connackPayload);
                         case CONNECT:
                             CONNECTPayload connectPayload = kryo.readObjectOrNull(input, CONNECTPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, connectPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, connectPayload);
                         case DISCONNECT:
                             DISCONNECTPayload disconnectPayload = kryo.readObjectOrNull(input, DISCONNECTPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, disconnectPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, disconnectPayload);
                         case PINGREQ:
                             PINGREQPayload pingreqPayload = kryo.readObjectOrNull(input, PINGREQPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, pingreqPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, pingreqPayload);
                         case PINGRESP:
                             PINGRESPPayload pingrespPayload = kryo.readObjectOrNull(input, PINGRESPPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, pingrespPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, pingrespPayload);
                         case PUBACK:
                             PUBACKPayload pubackPayload = kryo.readObjectOrNull(input, PUBACKPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, pubackPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, pubackPayload);
                         case PUBLISH:
                             PUBLISHPayload publishPayload = kryo.readObjectOrNull(input, PUBLISHPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, publishPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, publishPayload);
                         case SUBACK:
                             SUBACKPayload subackPayload = kryo.readObjectOrNull(input, SUBACKPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, subackPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, subackPayload);
                         case SUBSCRIBE:
                             SUBSCRIBEPayload subscribePayload = kryo.readObjectOrNull(input, SUBSCRIBEPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, subscribePayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, subscribePayload);
                         case UNSUBACK:
                             UNSUBACKPayload unsubackPayload = kryo.readObjectOrNull(input, UNSUBACKPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, unsubackPayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, unsubackPayload);
                         case UNSUBSCRIBE:
                             UNSUBSCRIBEPayload unsubscribePayload = kryo.readObjectOrNull(input, UNSUBSCRIBEPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, unsubscribePayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, unsubscribePayload);
                         case INCOMPATIBLEPayload:
                             INCOMPATIBLEPayload incompatiblePayload = kryo.readObjectOrNull(input, INCOMPATIBLEPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, incompatiblePayload);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, incompatiblePayload);
                         default:
                             INCOMPATIBLEPayload incompatiblePayload1 = kryo.readObjectOrNull(input, INCOMPATIBLEPayload.class);
-                            return new ExternalMessage(clientIdentifier, controlPacketType, incompatiblePayload1);
+                            return new ExternalMessage(id, clientIdentifier, controlPacketType, incompatiblePayload1);
                     }
                 }
             });

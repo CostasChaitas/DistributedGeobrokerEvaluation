@@ -8,17 +8,24 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 
 public class ExternalMessage {
+    private String id;
     private String clientIdentifier;
     private ControlPacketType controlPacketType;
     private AbstractPayload payload;
 
     public ExternalMessage(
+            @JsonProperty("id") String id,
             @JsonProperty("clientIdentifier") String clientIdentifier,
             @JsonProperty("controlPacketType") ControlPacketType controlPacketType,
             @JsonProperty("payload") AbstractPayload payload) {
+        this.id = id;
         this.clientIdentifier = clientIdentifier;
         this.controlPacketType = controlPacketType;
         this.payload = payload;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getClientIdentifier() {

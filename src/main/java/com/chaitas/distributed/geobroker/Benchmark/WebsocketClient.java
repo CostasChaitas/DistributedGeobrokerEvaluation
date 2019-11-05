@@ -19,6 +19,7 @@ public class WebsocketClient extends WebSocketClient {
     public WebsocketClient(URI serverURI, String clientName) {
         super( serverURI );
         this.clientName = clientName;
+        this.setConnectionLostTimeout(0);
     }
 
     @Override
@@ -37,9 +38,9 @@ public class WebsocketClient extends WebSocketClient {
             long receivedTime = System.currentTimeMillis() - time;
             System.out.println(clientName + " received message : " + externalMessage.getControlPacketType().toString());
             if(externalMessage.getControlPacketType() == ControlPacketType.PUBLISH) {
-                BenchmarkHelper.addEntry("PUBLISH_RECEIVED", externalMessage.getClientIdentifier(), receivedTime);
+                BenchmarkHelper.addEntry("PUBLISH_RECEIVED", externalMessage.getId(), externalMessage.getClientIdentifier(), receivedTime);
             } else{
-                BenchmarkHelper.addEntry(externalMessage.getControlPacketType().toString(), this.clientName, receivedTime);
+                BenchmarkHelper.addEntry(externalMessage.getControlPacketType().toString(), externalMessage.getId(), this.clientName, receivedTime);
             }
         }catch (Exception e) {
             System.out.println("Cannot deserialize received message");

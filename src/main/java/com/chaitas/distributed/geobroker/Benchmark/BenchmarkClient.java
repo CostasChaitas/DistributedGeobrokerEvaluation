@@ -16,6 +16,10 @@ import java.io.FileReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.ParseException;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 class BenchmarkClient implements Runnable {
 
@@ -23,20 +27,15 @@ class BenchmarkClient implements Runnable {
     private final String testsDirectoryPath;
     private final String apiURL;
     private final KryoSerializerPool kryo = new KryoSerializerPool();
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private WebsocketClient websocketClient;
     private Long time;
+    private Long maxMessageTime = 0L;
 
     public BenchmarkClient(String clientName, String testsDirectoryPath, String apiURL) {
         this.clientName = clientName;
         this.testsDirectoryPath = testsDirectoryPath;
         this.apiURL = apiURL;
-        try {
-            websocketClient = new WebsocketClient(new URI(this.apiURL), clientName);
-            this.createClientWebsocket();
-            this.connectClientWebsocket();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
     }
 
     private void createClientWebsocket() {
@@ -49,13 +48,21 @@ class BenchmarkClient implements Runnable {
 
     private void connectClientWebsocket() {
         Location location = Location.random();
-        ExternalMessage connect = new ExternalMessage(websocketClient.getClientName(), ControlPacketType.CONNECT, new CONNECTPayload(location));
+        ExternalMessage connect = new ExternalMessage(UUID.randomUUID().toString(), websocketClient.getClientName(), ControlPacketType.CONNECT, new CONNECTPayload(location));
         byte[] connectMsg = kryo.write(connect);
         websocketClient.send(connectMsg);
     }
 
     @Override
     public void run () {
+        try {
+            websocketClient = new WebsocketClient(new URI(this.apiURL), clientName);
+            this.createClientWebsocket();
+            this.connectClientWebsocket();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+
         time = System.currentTimeMillis();
         websocketClient.setTime(time);
         System.out.println("Running client " + clientName);
@@ -69,12 +76,24 @@ class BenchmarkClient implements Runnable {
                 if (messageDetails.length > 0) {
                     Long timeToSend = Long.parseLong(messageDetails[0]);
                     Long delay = timeToSend - (System.currentTimeMillis() - time);
-                    Thread.sleep(delay);
-                    ExternalMessage message = parseEntry(messageDetails, clientName);
-                    byte[] arr = kryo.write(message);
-                    BenchmarkHelper.addEntry(message.getControlPacketType().toString(), clientName, System.currentTimeMillis() - time);
-                    System.out.println(clientName + " sending message : " + message.getControlPacketType().toString());
-                    websocketClient.send(arr);
+                    if(delay > maxMessageTime){
+                        maxMessageTime = delay;
+                    }
+
+                    executor.schedule(() -> {
+                        try {
+                            ExternalMessage message = parseEntry(messageDetails, clientName);
+                            byte[] arr = kryo.write(message);
+                            Long timeNowMillis = System.currentTimeMillis() - time;
+                            BenchmarkHelper.addEntry(message.getControlPacketType().toString(), message.getId(), clientName, timeNowMillis);
+                            websocketClient.send(arr);
+                            System.out.println(clientName + " sending message : " + message.getControlPacketType().toString());
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+
+                    }, delay, TimeUnit.MILLISECONDS);
+
                 }
             }
         } catch (Exception e) {
@@ -83,11 +102,13 @@ class BenchmarkClient implements Runnable {
         }
 
         try {
-            Thread.sleep( 5000);
-            System.out.println("Closing Websocket " + clientName);
-            websocketClient.close();
+            executor.shutdown();
+            executor.awaitTermination(maxMessageTime + 5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
+        } finally {
+            System.out.println("Closing Websocket " + clientName);
+            websocketClient.close();
         }
     }
 
@@ -99,6 +120,7 @@ class BenchmarkClient implements Runnable {
                 double lat = Double.parseDouble(messageDetails[1]);
                 double lon = Double.parseDouble(messageDetails[2]);
                 ExternalMessage ping = new ExternalMessage(
+                        UUID.randomUUID().toString().replace("-", ""),
                         clientName,
                         ControlPacketType.PINGREQ,
                         new PINGREQPayload(new Location(lat, lon))
@@ -108,6 +130,7 @@ class BenchmarkClient implements Runnable {
                 Topic subTopic = new Topic(messageDetails[4]);
                 Geofence subGeofence = new Geofence(messageDetails[5]);
                 ExternalMessage subscribe = new ExternalMessage(
+                        UUID.randomUUID().toString().replace("-", ""),
                         clientName,
                         ControlPacketType.SUBSCRIBE,
                         new SUBSCRIBEPayload(subTopic, subGeofence)
@@ -117,6 +140,7 @@ class BenchmarkClient implements Runnable {
                 Topic pubTopic = new Topic(messageDetails[4]);
                 Geofence pubGeofence = new Geofence(messageDetails[5]);
                 ExternalMessage publish = new ExternalMessage(
+                        UUID.randomUUID().toString().replace("-", ""),
                         clientName,
                         ControlPacketType.PUBLISH,
                         new PUBLISHPayload(pubTopic, pubGeofence, clientName + ": Publishing some cool stuff.")
