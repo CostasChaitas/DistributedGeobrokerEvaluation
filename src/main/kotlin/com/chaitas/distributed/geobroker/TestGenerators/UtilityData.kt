@@ -65,7 +65,7 @@ fun getSetupString(className: String): String {
  * @return a header for a CSV file
  */
 fun getHeader(): String {
-    return "timestamp(ms);action_type;latitude;longitude;topic;geofence;payload_size\n"
+    return "timestamp(ms);latitude;longitude;action_type;topic;geofence;payload_size\n"
 }
 
 /*****************************************************************

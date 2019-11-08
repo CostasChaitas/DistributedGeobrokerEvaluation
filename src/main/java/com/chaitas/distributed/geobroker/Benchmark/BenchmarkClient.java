@@ -36,6 +36,13 @@ class BenchmarkClient implements Runnable {
         this.clientName = clientName;
         this.testsDirectoryPath = testsDirectoryPath;
         this.apiURL = apiURL;
+        try {
+            websocketClient = new WebsocketClient(new URI(this.apiURL), clientName);
+            this.createClientWebsocket();
+            this.connectClientWebsocket();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
     }
 
     private void createClientWebsocket() {
@@ -55,14 +62,6 @@ class BenchmarkClient implements Runnable {
 
     @Override
     public void run () {
-        try {
-            websocketClient = new WebsocketClient(new URI(this.apiURL), clientName);
-            this.createClientWebsocket();
-            this.connectClientWebsocket();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-
         time = System.currentTimeMillis();
         websocketClient.setTime(time);
         System.out.println("Running client " + clientName);
@@ -97,8 +96,7 @@ class BenchmarkClient implements Runnable {
                 }
             }
         } catch (Exception e) {
-            System.out.println(e);
-            throw new Error(e);
+            e.printStackTrace();
         }
 
         try {
