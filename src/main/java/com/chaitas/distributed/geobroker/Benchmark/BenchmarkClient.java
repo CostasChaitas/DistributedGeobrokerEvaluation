@@ -2,14 +2,12 @@ package com.chaitas.distributed.geobroker.Benchmark;
 
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ControlPacketType;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ExternalMessage;
-import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.CONNECTPayload;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.PINGREQPayload;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.PUBLISHPayload;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.SUBSCRIBEPayload;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Spatial.Geofence;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Spatial.Location;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Topic;
-import com.chaitas.distributed.geobroker.Utils.KryoSerializerPool;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -26,10 +24,9 @@ class BenchmarkClient implements Runnable {
     private final String clientName;
     private final String testsDirectoryPath;
     private final String apiURL;
-    private final KryoSerializerPool kryo = new KryoSerializerPool();
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private WebsocketClient websocketClient;
-    private Long time;
+    private Long initialTime;
     private Long maxMessageTime = 0L;
 
     public BenchmarkClient(String clientName, String testsDirectoryPath, String apiURL) {
@@ -38,32 +35,17 @@ class BenchmarkClient implements Runnable {
         this.apiURL = apiURL;
         try {
             websocketClient = new WebsocketClient(new URI(this.apiURL), clientName);
-            this.createClientWebsocket();
-            this.connectClientWebsocket();
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void createClientWebsocket() {
-        try {
             websocketClient.connectBlocking();
-        } catch (InterruptedException e) {
+            websocketClient.connectClientWebsocket();
+        } catch (URISyntaxException | InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    private void connectClientWebsocket() {
-        Location location = Location.random();
-        ExternalMessage connect = new ExternalMessage(UUID.randomUUID().toString(), websocketClient.getClientName(), ControlPacketType.CONNECT, new CONNECTPayload(location));
-        byte[] connectMsg = kryo.write(connect);
-        websocketClient.send(connectMsg);
     }
 
     @Override
     public void run () {
-        time = System.currentTimeMillis();
-        websocketClient.setTime(time);
+        initialTime = System.currentTimeMillis();
+        websocketClient.setTime(initialTime);
         System.out.println("Running client " + clientName);
 
         String readFilePath = this.testsDirectoryPath + clientName + ".csv";
@@ -74,7 +56,7 @@ class BenchmarkClient implements Runnable {
                 String[] messageDetails = line.split(";");
                 if (messageDetails.length > 0) {
                     Long timeToSend = Long.parseLong(messageDetails[0]);
-                    Long delay = timeToSend - (System.currentTimeMillis() - time);
+                    Long delay = timeToSend - (System.currentTimeMillis() - initialTime);
                     if(timeToSend > maxMessageTime){
                         maxMessageTime = timeToSend;
                     }
@@ -82,11 +64,7 @@ class BenchmarkClient implements Runnable {
                     executor.schedule(() -> {
                         try {
                             ExternalMessage message = parseEntry(messageDetails, clientName);
-                            byte[] arr = kryo.write(message);
-                            Long timeNowMillis = System.currentTimeMillis() - time;
-                            BenchmarkHelper.addEntry(message.getControlPacketType().toString(), message.getId(), clientName, timeNowMillis);
-                            websocketClient.send(arr);
-                            System.out.println(clientName + " sending message : " + message.getControlPacketType().toString());
+                            websocketClient.sendMessage(message);
                         } catch (ParseException e) {
                             e.printStackTrace();
                         }

@@ -6,7 +6,10 @@ import java.util.*;
 
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ControlPacketType;
 import com.chaitas.distributed.geobroker.Messages.ExternalMessages.ExternalMessage;
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Payloads.CONNECTPayload;
+import com.chaitas.distributed.geobroker.Messages.ExternalMessages.Spatial.Location;
 import com.chaitas.distributed.geobroker.Utils.JSONable;
+import com.chaitas.distributed.geobroker.Utils.KryoSerializerPool;
 import org.java_websocket.client.WebSocketClient;
 
 import org.java_websocket.handshake.ServerHandshake;
@@ -14,7 +17,8 @@ import org.java_websocket.handshake.ServerHandshake;
 public class WebsocketClient extends WebSocketClient {
 
     private final String clientName;
-    private Long time;
+    private Long initialTime;
+    private final KryoSerializerPool kryo = new KryoSerializerPool();
 
     public WebsocketClient(URI serverURI, String clientName) {
         super( serverURI );
@@ -35,7 +39,7 @@ public class WebsocketClient extends WebSocketClient {
             if(externalMessage.getControlPacketType() == ControlPacketType.CONNACK) {
                 return;
             }
-            long receivedTime = System.currentTimeMillis() - time;
+            long receivedTime = System.currentTimeMillis() - initialTime;
             System.out.println(clientName + " received message : " + externalMessage.getControlPacketType().toString());
             if(externalMessage.getControlPacketType() == ControlPacketType.PUBLISH) {
                 BenchmarkHelper.addEntry("PUBLISH_RECEIVED", externalMessage.getId(), externalMessage.getClientIdentifier(), receivedTime);
@@ -53,6 +57,21 @@ public class WebsocketClient extends WebSocketClient {
         System.out.println( "Connection closed by " + ( remote ? "remote peer" : "us" ) + " Code: " + code + " Reason: " + reason );
     }
 
+    public void sendMessage(ExternalMessage message){
+        byte[] arr = kryo.write(message);
+        Long timeNowMillis = System.currentTimeMillis() - initialTime;
+        BenchmarkHelper.addEntry(message.getControlPacketType().toString(), message.getId(), clientName, timeNowMillis);
+        this.send(arr);
+        System.out.println(clientName + " sending message : " + message.getControlPacketType().toString());
+    }
+
+    public void connectClientWebsocket() {
+        Location location = Location.random();
+        ExternalMessage connect = new ExternalMessage(UUID.randomUUID().toString(), clientName, ControlPacketType.CONNECT, new CONNECTPayload(location));
+        byte[] connectMsg = kryo.write(connect);
+        this.send(connectMsg);
+    }
+
     @Override
     public void onError( Exception ex ) {
         ex.printStackTrace();
@@ -63,11 +82,11 @@ public class WebsocketClient extends WebSocketClient {
     }
 
     public Long getTime() {
-        return time;
+        return initialTime;
     }
 
-    public void setTime(Long time) {
-        this.time = time;
+    public void setTime(Long initialTime) {
+        this.initialTime = initialTime;
     }
 
     public static void main( String[] args ) throws URISyntaxException {
